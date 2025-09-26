@@ -181,4 +181,35 @@ Vector<String> Object::GetKeys() const {
     return keys;
 }
 
+bool Value::operator>(const Value& other) const {
+    // Compare based on types and values
+    if (GetType() != other.GetType()) {
+        // Type-based comparison for different types
+        return static_cast<int>(GetType()) > static_cast<int>(other.GetType());
+    }
+    
+    switch (GetType()) {
+        case ValueType::INTEGER:
+            return AsInt() > other.AsInt();
+        case ValueType::FLOAT:
+            return AsFloat() > other.AsFloat();
+        case ValueType::STRING:
+            return AsString() > other.AsString();
+        default:
+            return false; // Other types not comparable
+    }
+}
+
+bool Value::operator>=(const Value& other) const {
+    return *this > other || *this == other;
+}
+
+bool Value::operator<(const Value& other) const {
+    return !(*this >= other);
+}
+
+bool Value::operator<=(const Value& other) const {
+    return !(*this > other);
+}
+
 } // namespace cj

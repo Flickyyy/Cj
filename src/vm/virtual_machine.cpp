@@ -338,6 +338,18 @@ void VirtualMachine::GrowStack() {
     stack_.resize(new_size);
 }
 
+void VirtualMachine::SetGlobal(const String& name, const Value& value) {
+    globals_[name] = value;
+}
+
+Value VirtualMachine::GetGlobal(const String& name) const {
+    auto it = globals_.find(name);
+    if (it != globals_.end()) {
+        return it->second;
+    }
+    return Value(); // nil
+}
+
 void VirtualMachine::RuntimeError(const String& message) {
     SetError(message);
     state_ = VMState::ERROR;
