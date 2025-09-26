@@ -68,6 +68,12 @@ make -j$(nproc)
 
 # Compile a CJ file
 ./bin/cj-compiler ../examples/fibonacci.cj -o fibonacci.cjb
+
+# Run the complete language demo
+./bin/examples/complete_demo
+
+# Run the SSA (Static Single Assignment) demo
+./bin/examples/ssa_demo
 ```
 
 ## Language Syntax
@@ -294,6 +300,8 @@ make docs
 - [x] Virtual machine with basic instructions
 - [x] Garbage collector (mark-and-sweep)
 - [x] JIT compiler framework
+- [x] **SSA (Static Single Assignment) form**
+- [x] **SSA-based optimizations (constant propagation, dead code elimination)**
 - [x] REPL and command-line tools
 
 ### Version 0.2.0 (Planned)
