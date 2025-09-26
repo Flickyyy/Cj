@@ -645,7 +645,8 @@ void TypeRegistry::InitializePrimitiveTypes() {
 
 TypeRegistry& TypeRegistry::Instance() {
     if (!instance_) {
-        instance_ = cj_make_unique<TypeRegistry>();
+        // Use new instead of make_unique to access private constructor
+        instance_ = UniquePtr<TypeRegistry>(new TypeRegistry());
     }
     return *instance_;
 }
@@ -739,7 +740,7 @@ SharedPtr<Type> TypeRegistry::GetCommonType(const Type& lhs, const Type& rhs) co
 SharedPtr<Type> TypeRegistry::InferType(const ASTNode& node) const {
     // This is a stub - would need full implementation based on AST node types
     // For now, return i32 as default
-    return GetInt32Type();
+    return named_types_.find("i32")->second;
 }
 
 } // namespace cj

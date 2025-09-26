@@ -13,13 +13,19 @@ add_executable(parser_demo
     parser_demo.cpp
 )
 
+# Add static typing demo
+add_executable(static_typing_demo
+    static_typing_demo/demo.cpp
+)
+
 # Link with core library
 target_link_libraries(hello_world cj-core)
 target_link_libraries(lexer_demo cj-core)
 target_link_libraries(parser_demo cj-core)
+target_link_libraries(static_typing_demo cj-types)
 
 # Set output directory
-set_target_properties(hello_world lexer_demo parser_demo
+set_target_properties(hello_world lexer_demo parser_demo static_typing_demo
     PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/examples
 )
