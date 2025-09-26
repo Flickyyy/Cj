@@ -259,6 +259,12 @@ private:
     void DataFlowAnalysis(IRFunction* function);
     void LivenessAnalysis(IRFunction* function);
     
+    // SSA-based passes
+    void ConstructSSA(IRFunction* function);
+    void DeconstructSSA(IRFunction* function);
+    void SSAConstantPropagation(IRFunction* function);
+    void SSADeadCodeElimination(IRFunction* function);
+    
     // Code generation helpers
     void SetupCodeGenerator();
     bool IsHotFunction(IRFunction* function) const;

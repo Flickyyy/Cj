@@ -2,6 +2,7 @@
 
 set(IR_SOURCES
     instruction.cpp
+    ssa.cpp
 )
 
 add_library(cj-ir STATIC ${IR_SOURCES})

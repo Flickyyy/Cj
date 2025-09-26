@@ -231,6 +231,8 @@ private:
 public:
     explicit BasicBlock(const String& label = "")
         : label_(label), is_entry_(false), is_exit_(false) {}
+        
+    virtual ~BasicBlock() = default;
     
     /**
      * @brief Label management
@@ -276,7 +278,7 @@ public:
     Size GetSize() const { return instructions_.size(); }
     bool Empty() const { return instructions_.empty(); }
     
-    String ToString() const;
+    virtual String ToString() const;
 };
 
 /**

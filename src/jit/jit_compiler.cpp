@@ -5,6 +5,7 @@
 
 #include "cj/jit/jit_compiler.h"
 #include "cj/vm/virtual_machine.h"
+#include "cj/ir/ssa.h"
 #include <iostream>
 #include <chrono>
 #include <cstdlib>
@@ -20,18 +21,29 @@ JITCompiler::JITCompiler(const JITOptions& options)
     
     SetupCodeGenerator();
     
-    // Setup optimization pipeline
-    if (options_.enable_constant_folding) {
-        optimizers_.push_back([this](IRFunction* func) { ConstantFolding(func); });
-    }
-    if (options_.enable_dead_code_elimination) {
-        optimizers_.push_back([this](IRFunction* func) { DeadCodeElimination(func); });
-    }
-    if (options_.enable_inlining) {
-        optimizers_.push_back([this](IRFunction* func) { InlineSmallFunctions(func); });
-    }
-    if (options_.enable_loop_unrolling) {
-        optimizers_.push_back([this](IRFunction* func) { LoopUnrolling(func); });
+    // Setup optimization pipeline with SSA
+    if (options_.optimization_level != JITOptLevel::NONE) {
+        // Convert to SSA form first
+        optimizers_.push_back([this](IRFunction* func) { ConstructSSA(func); });
+        
+        // SSA-based optimizations
+        if (options_.enable_constant_folding) {
+            optimizers_.push_back([this](IRFunction* func) { SSAConstantPropagation(func); });
+        }
+        if (options_.enable_dead_code_elimination) {
+            optimizers_.push_back([this](IRFunction* func) { SSADeadCodeElimination(func); });
+        }
+        
+        // Traditional optimizations  
+        if (options_.enable_inlining) {
+            optimizers_.push_back([this](IRFunction* func) { InlineSmallFunctions(func); });
+        }
+        if (options_.enable_loop_unrolling) {
+            optimizers_.push_back([this](IRFunction* func) { LoopUnrolling(func); });
+        }
+        
+        // Convert back from SSA form before code generation
+        optimizers_.push_back([this](IRFunction* func) { DeconstructSSA(func); });
     }
 }
 
@@ -400,5 +412,48 @@ UniquePtr<JITCompiler> CreateRelease() {
 }
 
 } // namespace JITFactory
+
+// SSA-based optimization methods
+void JITCompiler::ConstructSSA(IRFunction* function) {
+    if (options_.debug_jit) {
+        DebugLog("Constructing SSA form for " + function->GetName());
+    }
+    
+    SSABuilder builder(function);
+    builder.ConstructSSA();
+    
+    if (options_.debug_jit) {
+        builder.PrintSSAInfo();
+    }
+}
+
+void JITCompiler::DeconstructSSA(IRFunction* function) {
+    if (options_.debug_jit) {
+        DebugLog("Deconstructing SSA form for " + function->GetName());
+    }
+    
+    SSABuilder builder(function);
+    builder.DeconstructSSA();
+}
+
+void JITCompiler::SSAConstantPropagation(IRFunction* function) {
+    if (options_.debug_jit) {
+        DebugLog("Running SSA constant propagation on " + function->GetName());
+    }
+    
+    if (SSAOptimizations::ConstantPropagation(function)) {
+        stats_.functions_optimized++;
+    }
+}
+
+void JITCompiler::SSADeadCodeElimination(IRFunction* function) {
+    if (options_.debug_jit) {
+        DebugLog("Running SSA dead code elimination on " + function->GetName());
+    }
+    
+    if (SSAOptimizations::DeadCodeElimination(function)) {
+        stats_.functions_optimized++;
+    }
+}
 
 } // namespace cj
