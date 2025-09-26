@@ -268,7 +268,7 @@ void JITCompiler::SetupCodeGenerator() {
     switch (target) {
         case JITTarget::X86_64:
             if (IsTargetSupported(JITTarget::X86_64)) {
-                code_gen_ = make_unique<X86_64CodeGenerator>();
+                code_gen_ = cj_make_unique<X86_64CodeGenerator>();
             }
             break;
         default:
@@ -375,20 +375,20 @@ namespace JITFactory {
 UniquePtr<JITCompiler> Create(JITTarget target, const JITOptions& options) {
     JITOptions opts = options;
     opts.target = target;
-    return make_unique<JITCompiler>(opts);
+    return cj_make_unique<JITCompiler>(opts);
 }
 
 UniquePtr<JITCompiler> CreateNative(const JITOptions& options) {
     JITOptions opts = options;
     opts.target = JITTarget::NATIVE;
-    return make_unique<JITCompiler>(opts);
+    return cj_make_unique<JITCompiler>(opts);
 }
 
 UniquePtr<JITCompiler> CreateDebug() {
     JITOptions options;
     options.debug_jit = true;
     options.optimization_level = JITOptLevel::NONE;
-    return make_unique<JITCompiler>(options);
+    return cj_make_unique<JITCompiler>(options);
 }
 
 UniquePtr<JITCompiler> CreateRelease() {
@@ -396,7 +396,7 @@ UniquePtr<JITCompiler> CreateRelease() {
     options.debug_jit = false;
     options.optimization_level = JITOptLevel::AGGRESSIVE;
     options.enable_profiling = true;
-    return make_unique<JITCompiler>(options);
+    return cj_make_unique<JITCompiler>(options);
 }
 
 } // namespace JITFactory

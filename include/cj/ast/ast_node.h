@@ -219,7 +219,9 @@ public:
           left_(std::move(left)), operator_(op), right_(std::move(right)) {}
     
     const Expression* GetLeft() const { return left_.get(); }
+    Expression* GetLeft() { return left_.get(); }
     const Expression* GetRight() const { return right_.get(); }
+    Expression* GetRight() { return right_.get(); }
     TokenType GetOperator() const { return operator_; }
     
     String ToString() const override;
@@ -242,6 +244,7 @@ public:
     
     TokenType GetOperator() const { return operator_; }
     const Expression* GetOperand() const { return operand_.get(); }
+    Expression* GetOperand() { return operand_.get(); }
     
     String ToString() const override;
     void Accept(ASTVisitor& visitor) override;
@@ -263,8 +266,10 @@ public:
           target_(std::move(target)), operator_(op), value_(std::move(value)) {}
     
     const Expression* GetTarget() const { return target_.get(); }
+    Expression* GetTarget() { return target_.get(); }
     TokenType GetOperator() const { return operator_; }
     const Expression* GetValue() const { return value_.get(); }
+    Expression* GetValue() { return value_.get(); }
     
     String ToString() const override;
     void Accept(ASTVisitor& visitor) override;
@@ -285,6 +290,7 @@ public:
           callee_(std::move(callee)), arguments_(std::move(args)) {}
     
     const Expression* GetCallee() const { return callee_.get(); }
+    Expression* GetCallee() { return callee_.get(); }
     const Vector<UniquePtr<Expression>>& GetArguments() const { return arguments_; }
     
     String ToString() const override;
@@ -308,6 +314,7 @@ public:
     
     const String& GetName() const { return name_; }
     const Expression* GetInitializer() const { return initializer_.get(); }
+    Expression* GetInitializer() { return initializer_.get(); }
     bool IsConst() const { return is_const_; }
     
     String ToString() const override;
@@ -326,6 +333,7 @@ public:
         : Statement(ASTNodeType::EXPRESSION_STATEMENT, location), expression_(std::move(expr)) {}
     
     const Expression* GetExpression() const { return expression_.get(); }
+    Expression* GetExpression() { return expression_.get(); }
     
     String ToString() const override;
     void Accept(ASTVisitor& visitor) override;

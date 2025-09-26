@@ -98,7 +98,6 @@ private:
     UniquePtr<Statement> ParseVariableDeclaration();
     UniquePtr<Statement> ParseFunctionDeclaration();
     UniquePtr<Statement> ParseClassDeclaration();
-    UniquePtr<Statement> ParseStatement();
     UniquePtr<Statement> ParseExpressionStatement();
     UniquePtr<Statement> ParseBlockStatement();
     UniquePtr<Statement> ParseIfStatement();
@@ -111,7 +110,6 @@ private:
     UniquePtr<Statement> ParseThrowStatement();
     
     // Parsing methods - Expressions (precedence climbing)
-    UniquePtr<Expression> ParseExpression();
     UniquePtr<Expression> ParseAssignment();
     UniquePtr<Expression> ParseLogicalOr();
     UniquePtr<Expression> ParseLogicalAnd();

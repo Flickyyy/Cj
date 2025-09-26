@@ -22,7 +22,7 @@ CJEngine::CJEngine(const VMOptions& vm_opts, const GCOptions& gc_opts, const JIT
 CJEngine::~CJEngine() = default;
 
 void CJEngine::InitializeEngine() {
-    vm_ = make_unique<VirtualMachine>(vm_options_);
+    vm_ = cj_make_unique<VirtualMachine>(vm_options_);
     RegisterBuiltinFunctions();
 }
 
@@ -71,7 +71,7 @@ UniquePtr<Program> CJEngine::ParseFile(const String& filename) {
 
 UniquePtr<IRFunction> CJEngine::Compile(Program* ast) {
     // Stub implementation - would compile AST to IR
-    auto ir_function = make_unique<IRFunction>("main");
+    auto ir_function = cj_make_unique<IRFunction>("main");
     
     // Add a simple instruction sequence
     auto block = ir_function->CreateBlock("entry");
@@ -167,7 +167,7 @@ void CJEngine::ResetStats() {
 namespace CJUtils {
 
 UniquePtr<CJEngine> CreateEngine() {
-    return make_unique<CJEngine>();
+    return cj_make_unique<CJEngine>();
 }
 
 UniquePtr<CJEngine> CreateDebugEngine() {
@@ -183,7 +183,7 @@ UniquePtr<CJEngine> CreateDebugEngine() {
     jit_opts.debug_jit = true;
     jit_opts.optimization_level = JITOptLevel::NONE;
     
-    return make_unique<CJEngine>(vm_opts, gc_opts, jit_opts);
+    return cj_make_unique<CJEngine>(vm_opts, gc_opts, jit_opts);
 }
 
 UniquePtr<CJEngine> CreateReleaseEngine() {
@@ -201,7 +201,7 @@ UniquePtr<CJEngine> CreateReleaseEngine() {
     jit_opts.debug_jit = false;
     jit_opts.optimization_level = JITOptLevel::AGGRESSIVE;
     
-    return make_unique<CJEngine>(vm_opts, gc_opts, jit_opts);
+    return cj_make_unique<CJEngine>(vm_opts, gc_opts, jit_opts);
 }
 
 Value ExecuteCode(const String& code) {

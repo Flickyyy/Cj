@@ -69,7 +69,7 @@ int main(int argc, char* argv[]) {
         jit_opts.debug_jit = debug_mode;
         
         // Create engine
-        auto engine = make_unique<CJEngine>(vm_opts, gc_opts, jit_opts);
+        auto engine = cj_make_unique<CJEngine>(vm_opts, gc_opts, jit_opts);
         
         // Print welcome message
         std::cout << "CJ Language REPL v" << VERSION << std::endl;

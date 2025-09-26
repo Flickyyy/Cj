@@ -136,7 +136,7 @@ public:
         }
     }
     
-    Size Size() const {
+    Size GetSize() const {
         std::lock_guard<std::mutex> lock(mutex_);
         return roots_.size();
     }

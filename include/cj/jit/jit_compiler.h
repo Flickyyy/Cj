@@ -12,6 +12,7 @@
 #include "../ir/instruction.h"
 #include "../types/value.h"
 #include <functional>
+#include <atomic>
 
 namespace cj {
 
@@ -133,6 +134,9 @@ struct JITStats {
  * @brief Just-In-Time compiler implementation
  */
 class JITCompiler {
+public:
+    class CodeGenerator; // Forward declaration
+
 private:
     JITOptions options_;
     VirtualMachine* vm_;
@@ -157,7 +161,6 @@ private:
     JITStats stats_;
     
     // Platform-specific code generator
-    class CodeGenerator;
     UniquePtr<CodeGenerator> code_gen_;
 
 public:

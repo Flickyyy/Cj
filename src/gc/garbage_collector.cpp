@@ -361,14 +361,14 @@ namespace GCFactory {
 UniquePtr<GarbageCollector> Create(GCAlgorithm algorithm, const GCOptions& options) {
     GCOptions opts = options;
     opts.algorithm = algorithm;
-    return make_unique<GarbageCollector>(opts);
+    return cj_make_unique<GarbageCollector>(opts);
 }
 
 UniquePtr<GarbageCollector> CreateDebug() {
     GCOptions options;
     options.debug_gc = true;
     options.algorithm = GCAlgorithm::MARK_AND_SWEEP;
-    return make_unique<GarbageCollector>(options);
+    return cj_make_unique<GarbageCollector>(options);
 }
 
 UniquePtr<GarbageCollector> CreateRelease() {
@@ -376,7 +376,7 @@ UniquePtr<GarbageCollector> CreateRelease() {
     options.debug_gc = false;
     options.algorithm = GCAlgorithm::GENERATIONAL;
     options.concurrent_gc = true;
-    return make_unique<GarbageCollector>(options);
+    return cj_make_unique<GarbageCollector>(options);
 }
 
 } // namespace GCFactory

@@ -9,6 +9,7 @@ add_subdirectory(vm)
 add_subdirectory(gc)
 add_subdirectory(jit)
 add_subdirectory(types)
+add_subdirectory(semantic)
 add_subdirectory(utils)
 
 # Create main CJ library
@@ -27,6 +28,7 @@ target_link_libraries(cj-core
     cj-gc
     cj-jit
     cj-types
+    cj-semantic
     cj-utils
 )
 
