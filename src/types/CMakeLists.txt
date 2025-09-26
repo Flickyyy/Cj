@@ -2,6 +2,7 @@
 
 set(TYPES_SOURCES
     value.cpp
+    type_system.cpp
 )
 
 add_library(cj-types STATIC ${TYPES_SOURCES})
