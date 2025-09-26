@@ -7,7 +7,7 @@ A modern, JIT-compilable programming language with automatic memory management (
 
 ## Overview
 
-CJ is a dynamically-typed programming language designed with modern language features:
+CJ is a modern programming language with a hybrid type system that supports both static typing with explicit type annotations and dynamic typing with type inference:
 
 - **Virtual Machine**: Custom bytecode VM with stack-based execution
 - **Garbage Collection**: Automatic memory management with configurable GC algorithms
@@ -19,7 +19,8 @@ CJ is a dynamically-typed programming language designed with modern language fea
 ## Features
 
 ### Language Features
-- Variables (`var`, `const`)
+- **Hybrid Type System**: Static typing with type annotations and dynamic typing with inference
+- Variables (`var`, `const`) with optional type annotations
 - Functions with closures
 - Control flow (`if`/`else`, `while`, `for`)
 - Object-oriented programming (`class`, inheritance)
@@ -85,10 +86,16 @@ cat ../examples/stdlib_demo.cj
 ### Variables and Types
 
 ```javascript
-// Variables
+// Dynamic typing with type inference
 var name = "CJ Language";
 var version = 0.1;
 var is_ready = true;
+
+// Static typing with explicit type annotations
+var age: int = 25;
+var price: float = 19.99;
+var message: string = "Hello";
+var active: bool = true;
 
 // Constants
 const PI = 3.14159;

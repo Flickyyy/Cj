@@ -137,7 +137,7 @@ int main() {
         }
         
         std::cout << "\n🎉 TRANSFORMATION COMPLETE!" << std::endl;
-        std::cout << "   ✅ CJ is no longer just a dynamically typed language" << std::endl;
+        std::cout << "   ✅ CJ now offers a complete hybrid type system" << std::endl;
         std::cout << "   ✅ Static typing is now supported with type annotations" << std::endl;
         std::cout << "   ✅ Type safety is enforced at compile time" << std::endl;
         std::cout << "   ✅ Backward compatibility maintained for type inference" << std::endl;
