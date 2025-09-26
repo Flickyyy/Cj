@@ -43,6 +43,11 @@ add_executable(static_typing_test
     static_typing_test.cpp
 )
 
+# Add before/after transformation demo
+add_executable(before_after_demo
+    before_after_demo.cpp
+)
+
 # Link with core library
 target_link_libraries(hello_world cj-core)
 target_link_libraries(lexer_demo cj-core)
@@ -53,9 +58,10 @@ target_link_libraries(ssa_demo cj-ir cj-jit cj-types)
 target_link_libraries(optimization_demo cj-ir cj-jit cj-types)
 target_link_libraries(parse_test cj-core)
 target_link_libraries(static_typing_test cj-core cj-types cj-semantic)
+target_link_libraries(before_after_demo cj-core cj-types cj-semantic)
 
 # Set output directory
-set_target_properties(hello_world lexer_demo parser_demo type_demo complete_demo ssa_demo optimization_demo parse_test static_typing_test
+set_target_properties(hello_world lexer_demo parser_demo type_demo complete_demo ssa_demo optimization_demo parse_test static_typing_test before_after_demo
     PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/examples
 )
