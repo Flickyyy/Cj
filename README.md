@@ -74,6 +74,10 @@ make -j$(nproc)
 
 # Run the SSA (Static Single Assignment) demo
 ./bin/examples/ssa_demo
+
+# View CJ standard library examples (future syntax)
+cat ../stdlib/README.md
+cat ../examples/stdlib_demo.cj
 ```
 
 ## Language Syntax

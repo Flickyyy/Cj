@@ -60,8 +60,8 @@ int main() {
             std::cout << "   ✓ Common promotion type: " << common->GetName() << std::endl;
         }
         
-        // 3. Standard Library Containers
-        std::cout << "\n📦 3. STANDARD LIBRARY CONTAINERS" << std::endl;
+        // 3. C++ Container Wrappers (Placeholder for Future CJ Standard Library)
+        std::cout << "\n📦 3. C++ CONTAINER WRAPPERS" << std::endl;
         
         // Vector
         SimpleVector<int> numbers = {1, 2, 3, 4, 5};
@@ -121,13 +121,15 @@ int main() {
         std::cout << "\n✅ 5. SUCCESS REPORT" << std::endl;
         std::cout << "   ✓ Static type system: WORKING" << std::endl;
         std::cout << "   ✓ Type checker: WORKING" << std::endl;
-        std::cout << "   ✓ Standard library: WORKING" << std::endl;
+        std::cout << "   ✓ C++ container wrappers: WORKING" << std::endl;
+        std::cout << "   ✓ Native CJ standard library: TODO" << std::endl;
         std::cout << "   ✓ Type safety: ENFORCED" << std::endl;
         std::cout << "   ✓ Memory management: SAFE" << std::endl;
         
         std::cout << "\n🎉 CJ COMPILER IS FULLY FUNCTIONAL!" << std::endl;
         std::cout << "   This demonstrates a working static typing system" << std::endl;
-        std::cout << "   with type checking and standard library containers." << std::endl;
+        std::cout << "   with type checking and C++ container placeholders." << std::endl;
+        std::cout << "   Native CJ standard library modules are planned for v0.2.0" << std::endl;
         
     } catch (const std::exception& e) {
         std::cout << "❌ Error: " << e.what() << std::endl;
