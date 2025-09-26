@@ -303,16 +303,20 @@ public:
 class VariableDeclaration : public Declaration {
 private:
     String name_;
+    String type_annotation_;  // Optional type annotation (e.g., "int", "string")
     UniquePtr<Expression> initializer_;
     bool is_const_;
 
 public:
     VariableDeclaration(const String& name, UniquePtr<Expression> init, bool is_const,
-                       const SourceLocation& location = SourceLocation())
+                       const SourceLocation& location = SourceLocation(),
+                       const String& type_annotation = "")
         : Declaration(ASTNodeType::VARIABLE_DECLARATION, location),
-          name_(name), initializer_(std::move(init)), is_const_(is_const) {}
+          name_(name), type_annotation_(type_annotation), initializer_(std::move(init)), is_const_(is_const) {}
     
     const String& GetName() const { return name_; }
+    const String& GetTypeAnnotation() const { return type_annotation_; }
+    bool HasTypeAnnotation() const { return !type_annotation_.empty(); }
     const Expression* GetInitializer() const { return initializer_.get(); }
     Expression* GetInitializer() { return initializer_.get(); }
     bool IsConst() const { return is_const_; }

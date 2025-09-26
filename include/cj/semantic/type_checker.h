@@ -37,10 +37,14 @@ public:
     SharedPtr<Type> CheckLiteral(const class LiteralExpression* literal);
     SharedPtr<Type> CheckBinaryOp(const class BinaryExpression* binary);
     SharedPtr<Type> CheckVariable(const class IdentifierExpression* identifier);
+    void CheckVariableDeclaration(const class VariableDeclaration* decl);
     
     // Symbol table management
     void DeclareVariable(const String& name, SharedPtr<Type> type);
     SharedPtr<Type> LookupVariable(const String& name);
+    
+    // Type utilities
+    SharedPtr<Type> GetTypeFromString(const String& type_name);
     
     // Error handling
     void AddError(const String& error);

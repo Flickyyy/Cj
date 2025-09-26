@@ -14,9 +14,18 @@ SharedPtr<Type> TypeChecker::CheckExpression(const ASTNode* node) {
         return registry_.GetVoidType();
     }
     
-    // For now, return basic types based on simple heuristics
-    // This is a simplified implementation without full AST integration
-    return registry_.GetIntType(); // Default for now
+    // Check based on node type
+    switch (node->GetType()) {
+        case ASTNodeType::LITERAL_EXPRESSION:
+            return CheckLiteral(static_cast<const LiteralExpression*>(node));
+        case ASTNodeType::IDENTIFIER_EXPRESSION:
+            return CheckVariable(static_cast<const IdentifierExpression*>(node));
+        case ASTNodeType::BINARY_EXPRESSION:
+            return CheckBinaryOp(static_cast<const BinaryExpression*>(node));
+        default:
+            // For now, return int as default for unknown expressions
+            return registry_.GetIntType();
+    }
 }
 
 SharedPtr<Type> TypeChecker::CheckLiteral(const LiteralExpression* literal) {
@@ -25,9 +34,22 @@ SharedPtr<Type> TypeChecker::CheckLiteral(const LiteralExpression* literal) {
         return registry_.GetVoidType();
     }
     
-    // This is a simplified implementation
-    // In a real implementation, we'd examine the literal value
-    return registry_.GetIntType(); // Default for now
+    // Check the actual value type from the literal
+    const Value& value = literal->GetValue();
+    switch (value.GetType()) {
+        case ValueType::INTEGER:
+            return registry_.GetIntType();
+        case ValueType::FLOAT:
+            return registry_.GetFloatType();
+        case ValueType::STRING:
+            return registry_.GetStringType();
+        case ValueType::BOOLEAN:
+            return registry_.GetBoolType();
+        case ValueType::NIL:
+            return registry_.GetVoidType();
+        default:
+            return registry_.GetIntType(); // Default fallback
+    }
 }
 
 SharedPtr<Type> TypeChecker::CheckBinaryOp(const BinaryExpression* binary) {
@@ -85,6 +107,69 @@ SharedPtr<Type> TypeChecker::GetCommonType(SharedPtr<Type> lhs, SharedPtr<Type> 
     }
     
     return nullptr;
+}
+
+SharedPtr<Type> TypeChecker::GetTypeFromString(const String& type_name) {
+    if (type_name == "int") {
+        return registry_.GetIntType();
+    } else if (type_name == "float") {
+        return registry_.GetFloatType();
+    } else if (type_name == "string") {
+        return registry_.GetStringType();
+    } else if (type_name == "bool") {
+        return registry_.GetBoolType();
+    } else if (type_name == "void") {
+        return registry_.GetVoidType();
+    }
+    return nullptr;
+}
+
+void TypeChecker::CheckVariableDeclaration(const VariableDeclaration* decl) {
+    if (!decl) {
+        AddError("Null variable declaration");
+        return;
+    }
+    
+    SharedPtr<Type> annotated_type = nullptr;
+    SharedPtr<Type> inferred_type = nullptr;
+    
+    // Check if there's an explicit type annotation
+    if (decl->HasTypeAnnotation()) {
+        annotated_type = GetTypeFromString(decl->GetTypeAnnotation());
+        if (!annotated_type) {
+            AddError("Unknown type '" + decl->GetTypeAnnotation() + "' for variable '" + decl->GetName() + "'");
+            return;
+        }
+    }
+    
+    // Check initializer if present
+    if (decl->GetInitializer()) {
+        inferred_type = CheckExpression(decl->GetInitializer());
+        
+        // If we have both annotation and initializer, they must be compatible
+        if (annotated_type && inferred_type) {
+            if (!AreCompatible(annotated_type, inferred_type)) {
+                AddError("Type mismatch: variable '" + decl->GetName() + 
+                        "' declared as '" + annotated_type->GetName() + 
+                        "' but initialized with '" + inferred_type->GetName() + "'");
+                return;
+            }
+        }
+    }
+    
+    // Determine the final type for the variable
+    SharedPtr<Type> final_type;
+    if (annotated_type) {
+        final_type = annotated_type;
+    } else if (inferred_type) {
+        final_type = inferred_type;
+    } else {
+        AddError("Cannot determine type for variable '" + decl->GetName() + "' (no type annotation or initializer)");
+        return;
+    }
+    
+    // Declare the variable in symbol table
+    DeclareVariable(decl->GetName(), final_type);
 }
 
 } // namespace cj

@@ -46,6 +46,14 @@ UniquePtr<Statement> Parser::ParseVariableDeclaration() {
     
     Token name_token = Consume(TokenType::IDENTIFIER, "Expected variable name");
     
+    // Check for optional type annotation: var name: type
+    String type_annotation = "";
+    if (Check(TokenType::COLON)) {
+        Advance(); // consume ':'
+        Token type_token = Consume(TokenType::IDENTIFIER, "Expected type after ':'");
+        type_annotation = type_token.GetLexeme();
+    }
+    
     UniquePtr<Expression> initializer = nullptr;
     if (Match(TokenType::ASSIGN)) {
         Advance();
@@ -55,7 +63,7 @@ UniquePtr<Statement> Parser::ParseVariableDeclaration() {
     Consume(TokenType::SEMICOLON, "Expected ';' after variable declaration");
     
     return cj_make_unique<VariableDeclaration>(name_token.GetLexeme(), std::move(initializer), 
-                                           is_const, name_token.GetLocation());
+                                           is_const, name_token.GetLocation(), type_annotation);
 }
 
 UniquePtr<Statement> Parser::ParseExpressionStatement() {
