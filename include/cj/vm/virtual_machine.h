@@ -234,6 +234,7 @@ private:
     void GrowStack();
     void CheckStackOverflow();
     void CheckStackUnderflow(Size required);
+    void CheckStackUnderflow(Size required) const;
     
     // Error handling
     void RuntimeError(const String& message);

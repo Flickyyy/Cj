@@ -8,7 +8,7 @@
 namespace cj {
 
 UniquePtr<Program> Parser::ParseProgram() {
-    auto program = make_unique<Program>(GetCurrentLocation());
+    auto program = cj_make_unique<Program>(GetCurrentLocation());
     
     while (!IsAtEnd() && current_token_.GetType() != TokenType::EOF_TOKEN) {
         try {
@@ -54,14 +54,14 @@ UniquePtr<Statement> Parser::ParseVariableDeclaration() {
     
     Consume(TokenType::SEMICOLON, "Expected ';' after variable declaration");
     
-    return make_unique<VariableDeclaration>(name_token.GetLexeme(), std::move(initializer), 
+    return cj_make_unique<VariableDeclaration>(name_token.GetLexeme(), std::move(initializer), 
                                            is_const, name_token.GetLocation());
 }
 
 UniquePtr<Statement> Parser::ParseExpressionStatement() {
     auto expr = ParseExpression();
     Consume(TokenType::SEMICOLON, "Expected ';' after expression");
-    return make_unique<ExpressionStatement>(std::move(expr), GetCurrentLocation());
+    return cj_make_unique<ExpressionStatement>(std::move(expr), GetCurrentLocation());
 }
 
 UniquePtr<Expression> Parser::ParseAssignment() {
@@ -83,7 +83,7 @@ UniquePtr<Expression> Parser::ParseEquality() {
         TokenType op = current_token_.GetType();
         Advance();
         auto right = ParseComparison();
-        expr = make_unique<BinaryExpression>(std::move(expr), op, std::move(right), GetCurrentLocation());
+        expr = cj_make_unique<BinaryExpression>(std::move(expr), op, std::move(right), GetCurrentLocation());
     }
     
     return expr;
@@ -97,7 +97,7 @@ UniquePtr<Expression> Parser::ParseComparison() {
         TokenType op = current_token_.GetType();
         Advance();
         auto right = ParseTerm();
-        expr = make_unique<BinaryExpression>(std::move(expr), op, std::move(right), GetCurrentLocation());
+        expr = cj_make_unique<BinaryExpression>(std::move(expr), op, std::move(right), GetCurrentLocation());
     }
     
     return expr;
@@ -110,7 +110,7 @@ UniquePtr<Expression> Parser::ParseTerm() {
         TokenType op = current_token_.GetType();
         Advance();
         auto right = ParseFactor();
-        expr = make_unique<BinaryExpression>(std::move(expr), op, std::move(right), GetCurrentLocation());
+        expr = cj_make_unique<BinaryExpression>(std::move(expr), op, std::move(right), GetCurrentLocation());
     }
     
     return expr;
@@ -123,7 +123,7 @@ UniquePtr<Expression> Parser::ParseFactor() {
         TokenType op = current_token_.GetType();
         Advance();
         auto right = ParseUnary();
-        expr = make_unique<BinaryExpression>(std::move(expr), op, std::move(right), GetCurrentLocation());
+        expr = cj_make_unique<BinaryExpression>(std::move(expr), op, std::move(right), GetCurrentLocation());
     }
     
     return expr;
@@ -134,7 +134,7 @@ UniquePtr<Expression> Parser::ParseUnary() {
         TokenType op = current_token_.GetType();
         Advance();
         auto operand = ParseUnary();
-        return make_unique<UnaryExpression>(op, std::move(operand), GetCurrentLocation());
+        return cj_make_unique<UnaryExpression>(op, std::move(operand), GetCurrentLocation());
     }
     
     return ParseCall();
@@ -149,39 +149,39 @@ UniquePtr<Expression> Parser::ParsePrimary() {
         Token token = current_token_;
         Advance();
         Int64 value = std::stoll(token.GetLexeme());
-        return make_unique<LiteralExpression>(Value(value), token.GetLocation());
+        return cj_make_unique<LiteralExpression>(Value(value), token.GetLocation());
     }
     
     if (Match(TokenType::FLOAT_LITERAL)) {
         Token token = current_token_;
         Advance();
         Float64 value = std::stod(token.GetLexeme());
-        return make_unique<LiteralExpression>(Value(value), token.GetLocation());
+        return cj_make_unique<LiteralExpression>(Value(value), token.GetLocation());
     }
     
     if (Match(TokenType::STRING_LITERAL)) {
         Token token = current_token_;
         Advance();
-        return make_unique<LiteralExpression>(Value(token.GetLexeme()), token.GetLocation());
+        return cj_make_unique<LiteralExpression>(Value(token.GetLexeme()), token.GetLocation());
     }
     
     if (Match(TokenType::TRUE) || Match(TokenType::FALSE)) {
         Token token = current_token_;
         Advance();
         bool value = token.GetType() == TokenType::TRUE;
-        return make_unique<LiteralExpression>(Value(value), token.GetLocation());
+        return cj_make_unique<LiteralExpression>(Value(value), token.GetLocation());
     }
     
     if (Match(TokenType::NIL)) {
         Token token = current_token_;
         Advance();
-        return make_unique<LiteralExpression>(Value(), token.GetLocation());
+        return cj_make_unique<LiteralExpression>(Value(), token.GetLocation());
     }
     
     if (Match(TokenType::IDENTIFIER)) {
         Token token = current_token_;
         Advance();
-        return make_unique<IdentifierExpression>(token.GetLexeme(), token.GetLocation());
+        return cj_make_unique<IdentifierExpression>(token.GetLexeme(), token.GetLocation());
     }
     
     if (Match(TokenType::LEFT_PAREN)) {
@@ -262,16 +262,16 @@ namespace ParserFactory {
 
 UniquePtr<Parser> FromFile(const String& filename, const ParserOptions& options) {
     auto lexer = LexerFactory::FromFile(filename);
-    return make_unique<Parser>(std::move(lexer), options);
+    return cj_make_unique<Parser>(std::move(lexer), options);
 }
 
 UniquePtr<Parser> FromString(const String& source, const String& filename, const ParserOptions& options) {
     auto lexer = LexerFactory::FromString(source, filename);
-    return make_unique<Parser>(std::move(lexer), options);
+    return cj_make_unique<Parser>(std::move(lexer), options);
 }
 
 UniquePtr<Parser> FromLexer(UniquePtr<Lexer> lexer, const ParserOptions& options) {
-    return make_unique<Parser>(std::move(lexer), options);
+    return cj_make_unique<Parser>(std::move(lexer), options);
 }
 
 } // namespace ParserFactory

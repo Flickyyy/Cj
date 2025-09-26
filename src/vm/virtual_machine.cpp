@@ -21,14 +21,14 @@ VirtualMachine::VirtualMachine(const VMOptions& options)
         GCOptions gc_opts;
         gc_opts.initial_heap_size = options_.initial_heap_size;
         gc_opts.max_heap_size = options_.max_heap_size;
-        gc_ = make_unique<GarbageCollector>(gc_opts);
+        gc_ = cj_make_unique<GarbageCollector>(gc_opts);
         gc_->Initialize(this);
     }
     
     if (options_.enable_jit) {
         JITOptions jit_opts;
         jit_opts.compilation_threshold = options_.jit_threshold;
-        jit_ = make_unique<JITCompiler>(jit_opts);
+        jit_ = cj_make_unique<JITCompiler>(jit_opts);
         jit_->Initialize(this);
     }
     
@@ -327,6 +327,12 @@ void VirtualMachine::CheckStackUnderflow(Size required) {
     }
 }
 
+void VirtualMachine::CheckStackUnderflow(Size required) const {
+    if (stack_top_ < required) {
+        throw RuntimeException("Stack underflow");
+    }
+}
+
 void VirtualMachine::GrowStack() {
     Size new_size = std::min(stack_.size() * 2, options_.max_stack_size);
     stack_.resize(new_size);
@@ -395,7 +401,7 @@ Value VirtualMachine::NativeType(const Vector<Value>& args) {
 
 Value VirtualMachine::NativeLen(const Vector<Value>& args) {
     if (args.empty()) {
-        return Value(0);
+        return Value(static_cast<Int64>(0));
     }
     
     const Value& arg = args[0];
@@ -405,7 +411,7 @@ Value VirtualMachine::NativeLen(const Vector<Value>& args) {
         return Value(static_cast<Int64>(arg.AsArray()->GetSize()));
     }
     
-    return Value(0);
+    return Value(static_cast<Int64>(0));
 }
 
 void VirtualMachine::TraceInstruction(const IRInstruction& instruction) {
@@ -419,7 +425,7 @@ String VirtualMachine::FormatStackTrace() const {
 namespace VMFactory {
 
 UniquePtr<VirtualMachine> Create(const VMOptions& options) {
-    return make_unique<VirtualMachine>(options);
+    return cj_make_unique<VirtualMachine>(options);
 }
 
 UniquePtr<VirtualMachine> CreateDebug() {
@@ -427,7 +433,7 @@ UniquePtr<VirtualMachine> CreateDebug() {
     options.debug_mode = true;
     options.trace_execution = true;
     options.enable_jit = false;
-    return make_unique<VirtualMachine>(options);
+    return cj_make_unique<VirtualMachine>(options);
 }
 
 UniquePtr<VirtualMachine> CreateRelease() {
@@ -436,7 +442,7 @@ UniquePtr<VirtualMachine> CreateRelease() {
     options.trace_execution = false;
     options.enable_jit = true;
     options.execution_mode = ExecutionMode::JIT;
-    return make_unique<VirtualMachine>(options);
+    return cj_make_unique<VirtualMachine>(options);
 }
 
 } // namespace VMFactory
