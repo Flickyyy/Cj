@@ -1,6 +1,6 @@
-// Simple calculator in CJ Language
+// Simple calculator in CJ Language - Now with Static Typing!
 
-// Basic arithmetic functions
+// Basic arithmetic functions with typed parameters (coming in future version)
 function add(a, b) {
     return a + b;
 }
@@ -26,8 +26,8 @@ function power(base, exponent) {
         return 1;
     }
     
-    var result = 1;
-    var i = 0;
+    var result: int = 1;
+    var i: int = 0;
     while (i < exponent) {
         result = result * base;
         i = i + 1;
@@ -35,12 +35,12 @@ function power(base, exponent) {
     return result;
 }
 
-// Test the calculator
-var x = 15;
-var y = 3;
+// Test the calculator with static typing
+var x: int = 15;
+var y: int = 3;
 
-print("Calculator Demo");
-print("===============");
+print("Calculator Demo - Static Typing Edition");
+print("======================================");
 print("x = " + x);
 print("y = " + y);
 print("");
@@ -59,7 +59,7 @@ if (result == nil) {
     print("Division by zero handled correctly");
 }
 
-// More complex expressions
-var complex = add(multiply(x, y), subtract(power(2, 3), divide(16, 4)));
+// More complex expressions with typed variables
+var complex: int = add(multiply(x, y), subtract(power(2, 3), divide(16, 4)));
 print("");
 print("Complex expression: (" + x + " * " + y + ") + (2^3 - 16/4) = " + complex);

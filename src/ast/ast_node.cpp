@@ -73,6 +73,9 @@ void CallExpression::Accept(ASTVisitor& visitor) {
 String VariableDeclaration::ToString() const {
     String result = is_const_ ? "Const(" : "Var(";
     result += name_;
+    if (HasTypeAnnotation()) {
+        result += ": " + type_annotation_;
+    }
     if (initializer_) {
         result += " = " + initializer_->ToString();
     }
