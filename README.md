@@ -68,6 +68,16 @@ make -j$(nproc)
 
 # Compile a CJ file
 ./bin/cj-compiler ../examples/fibonacci.cj -o fibonacci.cjb
+
+# Run the complete language demo
+./bin/examples/complete_demo
+
+# Run the SSA (Static Single Assignment) demo
+./bin/examples/ssa_demo
+
+# View CJ standard library examples (future syntax)
+cat ../stdlib/README.md
+cat ../examples/stdlib_demo.cj
 ```
 
 ## Language Syntax
@@ -261,7 +271,24 @@ find . -name "*.cpp" -o -name "*.h" -o -name "*.hpp" | xargs clang-format -i
 
 ### Documentation
 
-Generate documentation with Doxygen:
+Comprehensive documentation is available in the `docs/` directory:
+
+- **[Compiler Architecture](docs/COMPILER_ARCHITECTURE.md)**: Complete guide to the CJ compiler toolchain, components, and concepts
+- **[SSA Implementation](docs/SSA_IMPLEMENTATION.md)**: Deep dive into Static Single Assignment form and optimization techniques
+
+#### Key Concepts Explained
+
+The documentation covers essential compiler concepts including:
+- **Compilation Pipeline**: Lexer → Parser → AST → IR → Optimization → Code Generation
+- **Static Single Assignment (SSA)**: Modern intermediate representation for advanced optimizations
+- **Dominance Analysis**: Control flow analysis for phi function placement  
+- **JIT Compilation**: Runtime code generation and optimization
+- **Garbage Collection**: Automatic memory management
+- **Type System**: Static typing with inference and compatibility rules
+
+#### API Documentation
+
+Generate API documentation with Doxygen:
 
 ```bash
 # In build directory
@@ -294,6 +321,8 @@ make docs
 - [x] Virtual machine with basic instructions
 - [x] Garbage collector (mark-and-sweep)
 - [x] JIT compiler framework
+- [x] **SSA (Static Single Assignment) form**
+- [x] **SSA-based optimizations (constant propagation, dead code elimination)**
 - [x] REPL and command-line tools
 
 ### Version 0.2.0 (Planned)

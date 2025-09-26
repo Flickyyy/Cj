@@ -5,6 +5,7 @@
 
 #include "cj/jit/jit_compiler.h"
 #include "cj/vm/virtual_machine.h"
+#include "cj/ir/ssa.h"
 #include <iostream>
 #include <chrono>
 #include <cstdlib>
@@ -20,18 +21,29 @@ JITCompiler::JITCompiler(const JITOptions& options)
     
     SetupCodeGenerator();
     
-    // Setup optimization pipeline
-    if (options_.enable_constant_folding) {
-        optimizers_.push_back([this](IRFunction* func) { ConstantFolding(func); });
-    }
-    if (options_.enable_dead_code_elimination) {
-        optimizers_.push_back([this](IRFunction* func) { DeadCodeElimination(func); });
-    }
-    if (options_.enable_inlining) {
-        optimizers_.push_back([this](IRFunction* func) { InlineSmallFunctions(func); });
-    }
-    if (options_.enable_loop_unrolling) {
-        optimizers_.push_back([this](IRFunction* func) { LoopUnrolling(func); });
+    // Setup optimization pipeline with SSA
+    if (options_.optimization_level != JITOptLevel::NONE) {
+        // Convert to SSA form first
+        optimizers_.push_back([this](IRFunction* func) { ConstructSSA(func); });
+        
+        // SSA-based optimizations
+        if (options_.enable_constant_folding) {
+            optimizers_.push_back([this](IRFunction* func) { SSAConstantPropagation(func); });
+        }
+        if (options_.enable_dead_code_elimination) {
+            optimizers_.push_back([this](IRFunction* func) { SSADeadCodeElimination(func); });
+        }
+        
+        // Traditional optimizations  
+        if (options_.enable_inlining) {
+            optimizers_.push_back([this](IRFunction* func) { InlineSmallFunctions(func); });
+        }
+        if (options_.enable_loop_unrolling) {
+            optimizers_.push_back([this](IRFunction* func) { LoopUnrolling(func); });
+        }
+        
+        // Convert back from SSA form before code generation
+        optimizers_.push_back([this](IRFunction* func) { DeconstructSSA(func); });
     }
 }
 
@@ -221,44 +233,464 @@ void JITCompiler::GenerateNativeCode(IRFunction* function, CompiledFunction* com
 }
 
 void JITCompiler::ConstantFolding(IRFunction* function) {
-    // Stub implementation of constant folding optimization
     if (options_.debug_jit) {
         DebugLog("Running constant folding on " + function->GetName());
+    }
+    
+    bool changed = false;
+    const auto& blocks = function->GetBlocks();
+    
+    for (const auto& block : blocks) {
+        auto& instructions = block->GetInstructions();
+        
+        for (size_t i = 0; i < instructions.size(); ++i) {
+            auto& instr = instructions[i];
+            
+            // Look for arithmetic operations with constant operands
+            if (instr.GetOpCode() == OpCode::ADD && instr.GetOperandCount() == 0) {
+                // Check if previous two instructions are LOAD_CONST
+                if (i >= 2 && 
+                    instructions[i-1].GetOpCode() == OpCode::LOAD_CONST &&
+                    instructions[i-2].GetOpCode() == OpCode::LOAD_CONST) {
+                    
+                    // Fold the constant addition
+                    auto val1 = instructions[i-2].GetOperand(0);
+                    auto val2 = instructions[i-1].GetOperand(0);
+                    
+                    if (val1.IsInt() && val2.IsInt()) {
+                        Int64 result = val1.AsInt() + val2.AsInt();
+                        
+                        // Replace the three instructions with one LOAD_CONST
+                        instructions[i-2] = IRInstruction(OpCode::LOAD_CONST, Value(result));
+                        instructions.erase(instructions.begin() + i - 1, instructions.begin() + i + 1);
+                        i -= 2; // Adjust index
+                        changed = true;
+                        
+                        if (options_.debug_jit) {
+                            DebugLog("Folded constant addition: " + std::to_string(val1.AsInt()) + 
+                                   " + " + std::to_string(val2.AsInt()) + " = " + std::to_string(result));
+                        }
+                    }
+                }
+            }
+            // Similar folding for SUB, MUL operations
+            else if (instr.GetOpCode() == OpCode::SUB && instr.GetOperandCount() == 0) {
+                if (i >= 2 && 
+                    instructions[i-1].GetOpCode() == OpCode::LOAD_CONST &&
+                    instructions[i-2].GetOpCode() == OpCode::LOAD_CONST) {
+                    
+                    auto val1 = instructions[i-2].GetOperand(0);
+                    auto val2 = instructions[i-1].GetOperand(0);
+                    
+                    if (val1.IsInt() && val2.IsInt()) {
+                        Int64 result = val1.AsInt() - val2.AsInt();
+                        instructions[i-2] = IRInstruction(OpCode::LOAD_CONST, Value(result));
+                        instructions.erase(instructions.begin() + i - 1, instructions.begin() + i + 1);
+                        i -= 2;
+                        changed = true;
+                    }
+                }
+            }
+            else if (instr.GetOpCode() == OpCode::MUL && instr.GetOperandCount() == 0) {
+                if (i >= 2 && 
+                    instructions[i-1].GetOpCode() == OpCode::LOAD_CONST &&
+                    instructions[i-2].GetOpCode() == OpCode::LOAD_CONST) {
+                    
+                    auto val1 = instructions[i-2].GetOperand(0);
+                    auto val2 = instructions[i-1].GetOperand(0);
+                    
+                    if (val1.IsInt() && val2.IsInt()) {
+                        Int64 result = val1.AsInt() * val2.AsInt();
+                        instructions[i-2] = IRInstruction(OpCode::LOAD_CONST, Value(result));
+                        instructions.erase(instructions.begin() + i - 1, instructions.begin() + i + 1);
+                        i -= 2;
+                        changed = true;
+                    }
+                }
+            }
+        }
+    }
+    
+    if (changed) {
+        stats_.functions_optimized++;
+        if (options_.debug_jit) {
+            DebugLog("Constant folding made optimizations in " + function->GetName());
+        }
     }
 }
 
 void JITCompiler::DeadCodeElimination(IRFunction* function) {
-    // Stub implementation of dead code elimination
     if (options_.debug_jit) {
         DebugLog("Running dead code elimination on " + function->GetName());
+    }
+    
+    bool changed = false;
+    const auto& blocks = function->GetBlocks();
+    
+    // Simple dead code elimination: remove unreachable code after unconditional jumps/returns
+    for (const auto& block : blocks) {
+        auto& instructions = block->GetInstructions();
+        
+        for (size_t i = 0; i < instructions.size(); ++i) {
+            auto& instr = instructions[i];
+            
+            // If we find a RETURN, JUMP, or HALT, remove everything after it in this block
+            if (instr.GetOpCode() == OpCode::RETURN || 
+                instr.GetOpCode() == OpCode::JUMP ||
+                instr.GetOpCode() == OpCode::HALT) {
+                
+                if (i + 1 < instructions.size()) {
+                    size_t removed_count = instructions.size() - i - 1;
+                    instructions.erase(instructions.begin() + i + 1, instructions.end());
+                    changed = true;
+                    
+                    if (options_.debug_jit) {
+                        DebugLog("Removed " + std::to_string(removed_count) + 
+                               " unreachable instructions after " + IRUtils::OpCodeToString(instr.GetOpCode()));
+                    }
+                }
+                break; // No more instructions to check in this block
+            }
+            
+            // Remove redundant stores to the same local variable
+            if (instr.GetOpCode() == OpCode::STORE_LOCAL && instr.GetOperandCount() > 0) {
+                // Look for another STORE_LOCAL to the same variable without an intervening LOAD_LOCAL
+                for (size_t j = i + 1; j < instructions.size(); ++j) {
+                    auto& next_instr = instructions[j];
+                    
+                    if (next_instr.GetOpCode() == OpCode::STORE_LOCAL && 
+                        next_instr.GetOperandCount() > 0 &&
+                        next_instr.GetOperand(0).AsInt() == instr.GetOperand(0).AsInt()) {
+                        
+                        // Check if there's a LOAD_LOCAL to this variable between stores
+                        bool has_load = false;
+                        for (size_t k = i + 1; k < j; ++k) {
+                            if (instructions[k].GetOpCode() == OpCode::LOAD_LOCAL &&
+                                instructions[k].GetOperandCount() > 0 &&
+                                instructions[k].GetOperand(0).AsInt() == instr.GetOperand(0).AsInt()) {
+                                has_load = true;
+                                break;
+                            }
+                        }
+                        
+                        if (!has_load) {
+                            // The first store is dead - remove it
+                            instructions.erase(instructions.begin() + i);
+                            --i; // Adjust index
+                            changed = true;
+                            
+                            if (options_.debug_jit) {
+                                DebugLog("Removed dead store to local variable " + 
+                                       std::to_string(instr.GetOperand(0).AsInt()));
+                            }
+                        }
+                        break;
+                    }
+                    
+                    // If we see a LOAD_LOCAL to this variable, the store is not dead
+                    if (next_instr.GetOpCode() == OpCode::LOAD_LOCAL && 
+                        next_instr.GetOperandCount() > 0 &&
+                        next_instr.GetOperand(0).AsInt() == instr.GetOperand(0).AsInt()) {
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    
+    if (changed) {
+        stats_.functions_optimized++;
+        if (options_.debug_jit) {
+            DebugLog("Dead code elimination made optimizations in " + function->GetName());
+        }
     }
 }
 
 void JITCompiler::InlineSmallFunctions(IRFunction* function) {
-    // Stub implementation of function inlining
     if (options_.debug_jit) {
         DebugLog("Running function inlining on " + function->GetName());
+    }
+    
+    const auto& blocks = function->GetBlocks();
+    bool changed = false;
+    
+    for (const auto& block : blocks) {
+        const auto& instructions = block->GetInstructions();
+        
+        for (size_t i = 0; i < instructions.size(); ++i) {
+            const auto& instr = instructions[i];
+            
+            if (instr.GetOpCode() == OpCode::CALL) {
+                // In a real implementation, we would:
+                // 1. Look up the called function
+                // 2. Check if it's small enough to inline (instruction count < threshold)
+                // 3. Check if inlining would be profitable
+                // 4. Perform the inlining transformation
+                
+                if (options_.debug_jit) {
+                    DebugLog("Found function call in " + function->GetName() + 
+                           " (advanced inlining analysis not implemented)");
+                }
+                
+                // For demonstration, we could check function size
+                Size instruction_count = 0;
+                for (const auto& b : blocks) {
+                    instruction_count += b->GetSize();
+                }
+                
+                if (instruction_count <= options_.inline_threshold) {
+                    if (options_.debug_jit) {
+                        DebugLog("Function " + function->GetName() + " is small enough for inlining (" + 
+                               std::to_string(instruction_count) + " instructions)");
+                    }
+                }
+            }
+        }
+    }
+    
+    // Note: Real function inlining requires:
+    // - Call graph analysis
+    // - Function lookup and availability checking
+    // - Cost-benefit analysis
+    // - Handling of recursive calls
+    // - Variable renaming to avoid conflicts
+    // - Control flow graph merging
+    
+    if (options_.debug_jit) {
+        DebugLog("Function inlining analysis completed for " + function->GetName());
     }
 }
 
 void JITCompiler::LoopUnrolling(IRFunction* function) {
-    // Stub implementation of loop unrolling
     if (options_.debug_jit) {
         DebugLog("Running loop unrolling on " + function->GetName());
+    }
+    
+    // Simple loop unrolling: identify small loops and unroll them
+    // This is a basic implementation that looks for simple loop patterns
+    
+    const auto& blocks = function->GetBlocks();
+    bool changed = false;
+    
+    for (const auto& block : blocks) {
+        const auto& instructions = block->GetInstructions();
+        
+        // Look for simple counting loops (this is a simplified heuristic)
+        for (size_t i = 0; i < instructions.size(); ++i) {
+            const auto& instr = instructions[i];
+            
+            // Look for a pattern that suggests a small counting loop
+            if (instr.GetOpCode() == OpCode::JUMP_IF_FALSE || instr.GetOpCode() == OpCode::JUMP_IF_TRUE) {
+                // In a real implementation, we would:
+                // 1. Analyze the loop structure
+                // 2. Determine if it's profitable to unroll
+                // 3. Check if the loop count is small and known at compile time
+                // 4. Duplicate the loop body
+                
+                // For now, just log that we found a potential loop
+                if (options_.debug_jit) {
+                    DebugLog("Found potential loop structure in " + function->GetName() + 
+                           " (advanced unrolling not implemented)");
+                }
+            }
+        }
+    }
+    
+    // Note: Real loop unrolling requires complex control flow analysis
+    // This would need to:
+    // - Identify natural loops using dominators
+    // - Analyze induction variables
+    // - Estimate loop trip counts
+    // - Determine profitability
+    // - Perform the actual unrolling transformation
+    
+    if (options_.debug_jit) {
+        DebugLog("Loop unrolling analysis completed for " + function->GetName());
     }
 }
 
 void JITCompiler::RegisterAllocation(IRFunction* function) {
-    // Stub implementation of register allocation
     if (options_.debug_jit) {
         DebugLog("Running register allocation on " + function->GetName());
+    }
+    
+    // Simple register allocation analysis
+    const auto& blocks = function->GetBlocks();
+    HashMap<Int64, Size> local_usage_count;
+    Size max_stack_depth = 0;
+    Size current_stack_depth = 0;
+    
+    // Analyze local variable usage and stack depth
+    for (const auto& block : blocks) {
+        const auto& instructions = block->GetInstructions();
+        
+        for (const auto& instr : instructions) {
+            switch (instr.GetOpCode()) {
+                case OpCode::LOAD_LOCAL:
+                case OpCode::STORE_LOCAL:
+                    if (instr.GetOperandCount() > 0) {
+                        Int64 local_index = instr.GetOperand(0).AsInt();
+                        local_usage_count[local_index]++;
+                    }
+                    break;
+                    
+                case OpCode::LOAD_CONST:
+                case OpCode::LOAD_TRUE:
+                case OpCode::LOAD_FALSE:
+                case OpCode::LOAD_NIL:
+                    current_stack_depth++;
+                    max_stack_depth = std::max(max_stack_depth, current_stack_depth);
+                    break;
+                    
+                case OpCode::POP:
+                    if (current_stack_depth > 0) current_stack_depth--;
+                    break;
+                    
+                case OpCode::ADD:
+                case OpCode::SUB:
+                case OpCode::MUL:
+                case OpCode::DIV:
+                case OpCode::MOD:
+                    // Binary operations pop 2, push 1
+                    if (current_stack_depth >= 2) current_stack_depth--;
+                    break;
+                    
+                case OpCode::NEG:
+                case OpCode::LOGICAL_NOT:
+                    // Unary operations pop 1, push 1 (no net change)
+                    break;
+                    
+                case OpCode::STORE_GLOBAL:
+                    if (current_stack_depth > 0) current_stack_depth--;
+                    break;
+                    
+                default:
+                    break;
+            }
+        }
+    }
+    
+    // Report allocation analysis
+    if (options_.debug_jit) {
+        DebugLog("Register allocation analysis for " + function->GetName() + ":");
+        DebugLog("  Local variables used: " + std::to_string(local_usage_count.size()));
+        DebugLog("  Max stack depth: " + std::to_string(max_stack_depth));
+        
+        // Report most frequently used locals (candidates for register allocation)
+        if (!local_usage_count.empty()) {
+            auto max_used = std::max_element(local_usage_count.begin(), local_usage_count.end(),
+                [](const auto& a, const auto& b) { return a.second < b.second; });
+            
+            DebugLog("  Most used local variable: " + std::to_string(max_used->first) + 
+                   " (used " + std::to_string(max_used->second) + " times)");
+        }
+    }
+    
+    // Note: Real register allocation would:
+    // - Build interference graph
+    // - Perform graph coloring or linear scan
+    // - Handle spilling when registers are exhausted
+    // - Consider register preferences and coalescing
+    // - Account for calling conventions
+    
+    if (local_usage_count.size() > 0) {
+        stats_.functions_optimized++;
     }
 }
 
 void JITCompiler::PeepholeOptimization(IRFunction* function) {
-    // Stub implementation of peephole optimization
     if (options_.debug_jit) {
         DebugLog("Running peephole optimization on " + function->GetName());
+    }
+    
+    bool changed = false;
+    const auto& blocks = function->GetBlocks();
+    
+    for (const auto& block : blocks) {
+        auto& instructions = block->GetInstructions();
+        
+        for (size_t i = 0; i < instructions.size(); ++i) {
+            // Pattern: LOAD_LOCAL followed immediately by STORE_LOCAL to same variable (redundant)
+            if (i + 1 < instructions.size()) {
+                auto& instr1 = instructions[i];
+                auto& instr2 = instructions[i + 1];
+                
+                if (instr1.GetOpCode() == OpCode::LOAD_LOCAL && 
+                    instr2.GetOpCode() == OpCode::STORE_LOCAL &&
+                    instr1.GetOperandCount() > 0 && instr2.GetOperandCount() > 0 &&
+                    instr1.GetOperand(0).AsInt() == instr2.GetOperand(0).AsInt()) {
+                    
+                    // Remove both instructions (load then store to same location is redundant)
+                    instructions.erase(instructions.begin() + i, instructions.begin() + i + 2);
+                    --i; // Adjust index
+                    changed = true;
+                    
+                    if (options_.debug_jit) {
+                        DebugLog("Removed redundant LOAD_LOCAL/STORE_LOCAL pair for variable " + 
+                               std::to_string(instr1.GetOperand(0).AsInt()));
+                    }
+                    continue;
+                }
+            }
+            
+            // Pattern: Multiplication by 1 or 0
+            if (i >= 1 && instructions[i].GetOpCode() == OpCode::MUL) {
+                auto& prev_instr = instructions[i - 1];
+                if (prev_instr.GetOpCode() == OpCode::LOAD_CONST && prev_instr.GetOperandCount() > 0) {
+                    auto val = prev_instr.GetOperand(0);
+                    if (val.IsInt()) {
+                        if (val.AsInt() == 1) {
+                            // Multiplication by 1 - remove both LOAD_CONST 1 and MUL
+                            instructions.erase(instructions.begin() + i - 1, instructions.begin() + i + 1);
+                            i -= 2; // Adjust index
+                            changed = true;
+                            
+                            if (options_.debug_jit) {
+                                DebugLog("Optimized multiplication by 1");
+                            }
+                        } else if (val.AsInt() == 0) {
+                            // Multiplication by 0 - replace with just LOAD_CONST 0
+                            if (i >= 2) {
+                                // Remove the value being multiplied and the MUL, keep LOAD_CONST 0
+                                instructions.erase(instructions.begin() + i - 2);
+                                instructions.erase(instructions.begin() + i - 2); // MUL is now at i-2
+                                i -= 2;
+                                changed = true;
+                                
+                                if (options_.debug_jit) {
+                                    DebugLog("Optimized multiplication by 0");
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Pattern: Addition with 0
+            if (i >= 1 && instructions[i].GetOpCode() == OpCode::ADD) {
+                auto& prev_instr = instructions[i - 1];
+                if (prev_instr.GetOpCode() == OpCode::LOAD_CONST && prev_instr.GetOperandCount() > 0) {
+                    auto val = prev_instr.GetOperand(0);
+                    if (val.IsInt() && val.AsInt() == 0) {
+                        // Addition with 0 - remove both LOAD_CONST 0 and ADD
+                        instructions.erase(instructions.begin() + i - 1, instructions.begin() + i + 1);
+                        i -= 2; // Adjust index
+                        changed = true;
+                        
+                        if (options_.debug_jit) {
+                            DebugLog("Optimized addition with 0");
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    if (changed) {
+        stats_.functions_optimized++;
+        if (options_.debug_jit) {
+            DebugLog("Peephole optimization made optimizations in " + function->GetName());
+        }
     }
 }
 
@@ -400,5 +832,48 @@ UniquePtr<JITCompiler> CreateRelease() {
 }
 
 } // namespace JITFactory
+
+// SSA-based optimization methods
+void JITCompiler::ConstructSSA(IRFunction* function) {
+    if (options_.debug_jit) {
+        DebugLog("Constructing SSA form for " + function->GetName());
+    }
+    
+    SSABuilder builder(function);
+    builder.ConstructSSA();
+    
+    if (options_.debug_jit) {
+        builder.PrintSSAInfo();
+    }
+}
+
+void JITCompiler::DeconstructSSA(IRFunction* function) {
+    if (options_.debug_jit) {
+        DebugLog("Deconstructing SSA form for " + function->GetName());
+    }
+    
+    SSABuilder builder(function);
+    builder.DeconstructSSA();
+}
+
+void JITCompiler::SSAConstantPropagation(IRFunction* function) {
+    if (options_.debug_jit) {
+        DebugLog("Running SSA constant propagation on " + function->GetName());
+    }
+    
+    if (SSAOptimizations::ConstantPropagation(function)) {
+        stats_.functions_optimized++;
+    }
+}
+
+void JITCompiler::SSADeadCodeElimination(IRFunction* function) {
+    if (options_.debug_jit) {
+        DebugLog("Running SSA dead code elimination on " + function->GetName());
+    }
+    
+    if (SSAOptimizations::DeadCodeElimination(function)) {
+        stats_.functions_optimized++;
+    }
+}
 
 } // namespace cj

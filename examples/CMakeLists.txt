@@ -23,15 +23,27 @@ add_executable(complete_demo
     complete_demo.cpp
 )
 
+# Add SSA demonstration
+add_executable(ssa_demo
+    ssa_demo.cpp
+)
+
+# Add optimization improvements demo
+add_executable(optimization_demo
+    optimization_demo.cpp
+)
+
 # Link with core library
 target_link_libraries(hello_world cj-core)
 target_link_libraries(lexer_demo cj-core)
 target_link_libraries(parser_demo cj-core)
 target_link_libraries(type_demo cj-types cj-semantic)
 target_link_libraries(complete_demo cj-types cj-semantic)
+target_link_libraries(ssa_demo cj-ir cj-jit cj-types)
+target_link_libraries(optimization_demo cj-ir cj-jit cj-types)
 
 # Set output directory
-set_target_properties(hello_world lexer_demo parser_demo type_demo complete_demo
+set_target_properties(hello_world lexer_demo parser_demo type_demo complete_demo ssa_demo optimization_demo
     PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/examples
 )
