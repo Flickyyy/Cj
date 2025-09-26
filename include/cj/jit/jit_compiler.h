@@ -240,6 +240,14 @@ public:
     void DumpCompiledFunction(const String& name) const;
     void DumpStats() const;
     void EnableDebug(bool enable) { options_.debug_jit = enable; }
+    
+    /**
+     * @brief Test optimization passes individually (for demonstration purposes)
+     */
+    void TestConstantFolding(IRFunction* function) { ConstantFolding(function); }
+    void TestDeadCodeElimination(IRFunction* function) { DeadCodeElimination(function); }
+    void TestPeepholeOptimization(IRFunction* function) { PeepholeOptimization(function); }
+    void TestRegisterAllocation(IRFunction* function) { RegisterAllocation(function); }
 
 private:
     // Compilation pipeline
