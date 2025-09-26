@@ -143,6 +143,7 @@ private:
         ASTNode* declaration;
         bool is_const;
         
+        Symbol() : name(""), declaration(nullptr), is_const(false) {}
         Symbol(const String& n, ASTNode* decl, bool c)
             : name(n), declaration(decl), is_const(c) {}
     };
